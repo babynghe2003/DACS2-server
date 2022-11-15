@@ -83,7 +83,6 @@ def register():
     }), HTTP_201_CREATED
 
 @auth.post('/login')
-# @jwt_required()
 def login():
     email = request.json.get('email', '')
     password = request.json.get('password', '')
