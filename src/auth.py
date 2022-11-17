@@ -5,7 +5,7 @@ from flask import Blueprint, app, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 import validators
 from  flask_jwt_extended  import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
-from src.database import Users, db
+from src.models import Users, db
 
 auth = Blueprint("auth",__name__,url_prefix="/api/v1/auth")
 
@@ -110,6 +110,29 @@ def login():
         
 
     return jsonify({'error': 'Wrong credentials'}), HTTP_401_UNAUTHORIZED
+@auth.patch('/update-profile/<id>')
+@jwt_required()
+def update_profile(id):
+    user = Users.query.filter_by(id = id).first()
+
+    email = request.json['email']
+    username = request.json['username']
+    password = request.json['password']
+
+    user.email = email
+    user.username = username
+    user.password = password
+
+    db.commit()
+    return jsonify({
+        'message':'Update success',
+        'user':{
+            'id':user.id,
+            'email':user.email,
+            'username':user.username
+        }
+    }), HTTP_200_OK
+
 
 @auth.get('/me')
 @jwt_required()

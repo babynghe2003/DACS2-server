@@ -2,7 +2,7 @@ from flask import Flask, request
 import os
 from src.auth import auth
 from src.bookmarks import bookmarks
-from src.database import db
+from src.models import db
 from src.topic import topics
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -10,6 +10,8 @@ from flask_cors import CORS
 def create_app(test_config=None):
     app = Flask(__name__,
     instance_relative_config=True)
+
+
 
     if test_config is None:
         app.config.from_mapping(
@@ -33,11 +35,11 @@ def create_app(test_config=None):
         for i in data:
             print(i)
         return {"message": request.json['text']}
-    CORS(app)
     db.app = app
-    db.init_app(app)
+    with app.app_context():
+        db.init_app(app)
     
-    
+    CORS(app)
     JWTManager(app)
     
     app.register_blueprint(auth)
