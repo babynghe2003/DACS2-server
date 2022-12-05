@@ -4,10 +4,11 @@ from src.constants.http_status_codes import HTTP_200_OK, HTTP_201_CREATED, HTTP_
 from flask import Blueprint, app, request, jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 import validators
-from  flask_jwt_extended  import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
+from flask_jwt_extended import jwt_required, create_access_token, create_refresh_token, get_jwt_identity
 from src.models import Users, db
 
-auth = Blueprint("auth",__name__,url_prefix="/api/v1/auth")
+auth = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
+
 
 @auth.post('/create_admin')
 def create_admin():
@@ -32,7 +33,8 @@ def create_admin():
 
     pwd_hash = generate_password_hash(password)
 
-    user = Users(id = uuid.uuid4(),username=username, password=pwd_hash, email=email,role="admin")
+    user = Users(id=uuid.uuid4(), username=username,
+                 password=pwd_hash, email=email, role="admin")
     db.session.add(user)
     db.session.commit()
 
@@ -43,6 +45,7 @@ def create_admin():
         }
 
     }), HTTP_201_CREATED
+
 
 @auth.post('/register')
 def register():
@@ -70,7 +73,8 @@ def register():
 
     pwd_hash = generate_password_hash(password)
 
-    user = Users(id = uuid.uuid4(),username=username, password=pwd_hash, email=email)
+    user = Users(id=uuid.uuid4(), username=username,
+                 password=pwd_hash, email=email)
     db.session.add(user)
     db.session.commit()
 
@@ -81,6 +85,7 @@ def register():
         }
 
     }), HTTP_201_CREATED
+
 
 @auth.post('/login')
 def login():
@@ -100,36 +105,33 @@ def login():
                 'user': {
                     'refresh': refresh,
                     'access': access,
-                    'id':user.id,
+                    'id': user.id,
                     'username': user.username,
                     'email': user.email,
-                    'role':user.role
+                    'role': user.role
                 }
 
             }), HTTP_200_OK
-        
 
     return jsonify({'error': 'Wrong credentials'}), HTTP_401_UNAUTHORIZED
-@auth.patch('/update-profile/<id>')
+
+
+@auth.patch('/update-profile')
 @jwt_required()
-def update_profile(id):
-    user = Users.query.filter_by(id = id).first()
+def update_profile():
+    user_id = get_jwt_identity()
+    user = Users.query.filter_by(id=user_id).first()
 
-    email = request.json['email']
-    username = request.json['username']
-    password = request.json['password']
+    for key in request.json:
+        setattr(user, key, request.json[key])
 
-    user.email = email
-    user.username = username
-    user.password = password
-
-    db.commit()
+    db.session.commit()
     return jsonify({
-        'message':'Update success',
-        'user':{
-            'id':user.id,
-            'email':user.email,
-            'username':user.username
+        'message': 'Update success',
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'username': user.username
         }
     }), HTTP_200_OK
 
@@ -140,7 +142,15 @@ def me():
     user_id = get_jwt_identity()
     user = Users.query.filter_by(id=user_id).first()
     return jsonify({
-        'id':user.id,
+        'id': user.id,
         'username': user.username,
         'email': user.email
     }), HTTP_200_OK
+
+
+@auth.get('/profile/<id>')
+def profile(id):
+    user = Users.query.filter_by(id=id).first()
+    return jsonify(
+        user
+    ), HTTP_200_OK
