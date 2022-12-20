@@ -34,7 +34,7 @@ def create_admin():
     pwd_hash = generate_password_hash(password)
 
     user = Users(id=uuid.uuid4(), username=username,
-                 password=pwd_hash, email=email, role="admin")
+            password=pwd_hash, email=email, role="admin")
     db.session.add(user)
     db.session.commit()
 
@@ -42,9 +42,9 @@ def create_admin():
         'message': "User created",
         'user': {
             'username': username, "email": email
-        }
+            }
 
-    }), HTTP_201_CREATED
+        }), HTTP_201_CREATED
 
 
 @auth.post('/register')
@@ -74,7 +74,7 @@ def register():
     pwd_hash = generate_password_hash(password)
 
     user = Users(id=uuid.uuid4(), username=username,
-                 password=pwd_hash, email=email)
+            password=pwd_hash, email=email)
     db.session.add(user)
     db.session.commit()
 
@@ -82,9 +82,9 @@ def register():
         'message': "User created",
         'user': {
             'username': username, "email": email
-        }
+            }
 
-    }), HTTP_201_CREATED
+        }), HTTP_201_CREATED
 
 
 @auth.post('/login')
@@ -109,9 +109,9 @@ def login():
                     'username': user.username,
                     'email': user.email,
                     'role': user.role
-                }
+                    }
 
-            }), HTTP_200_OK
+                }), HTTP_200_OK
 
     return jsonify({'error': 'Wrong credentials'}), HTTP_401_UNAUTHORIZED
 
@@ -132,8 +132,8 @@ def update_profile():
             'id': user.id,
             'email': user.email,
             'username': user.username
-        }
-    }), HTTP_200_OK
+            }
+        }), HTTP_200_OK
 
 
 @auth.get('/me')
@@ -145,12 +145,28 @@ def me():
         'id': user.id,
         'username': user.username,
         'email': user.email
-    }), HTTP_200_OK
+        }), HTTP_200_OK
 
 
 @auth.get('/profile/<id>')
 def profile(id):
     user = Users.query.filter_by(id=id).first()
     return jsonify(
-        user
-    ), HTTP_200_OK
+            user
+            ), HTTP_200_OK
+
+@auth.put('/change-password')
+@jwt_required()
+def change_password():
+    user_id = get_jwt_identity()
+    user = Users.query.filter_by(id=user_id).first()
+
+    old_password = request.json['old_password']
+    new_password = request.json['new_password']
+
+    if check_password_hash(user.password, old_password):
+        user.password = generate_password_hash(new_password)
+        db.session.commit()
+        return jsonify({'message': 'Password updated'}), HTTP_200_OK
+
+    return jsonify({'error': 'Wrong password'}), HTTP_400_BAD_REQUEST
